@@ -14,76 +14,117 @@
 var iqwerty = iqwerty || {};
 
 iqwerty.history = (function() {
-	//User states and handlers
-	var _states = {};
 
-	var _baseURL = null;
 	var HASH_BANG = '#!/';
 
 	function getBaseURL() {
-		return window.location.pathname;
+		return window.location.pathname; //e.g. /history/index.html
 	}
 
 	function getHash() {
-		return window.location.hash;
-	}
+		var hash = window.location.hash;
 
-	function handleState(state, action) {
-		if(state.indexOf(HASH_BANG) === 0) {
-			//Managing state from current state
-			state = Object.keys(_states).find(_state => _state.split(state).length >= 1);
+		//Remove the trailing slash if it's there
+		if(hash.substr(-1) === '/') {
+			hash = hash.substring(0, hash.length - 1);
 		}
-		var _hash = HASH_BANG + state.split(':')[0];
-		var _split = getHash().split(_hash);
-		if(_split.length < 1) return false;
-
-		console.log(_states, state);
-
-		_states[state](_split[1], action);
-		return true;
+		return hash; //e.g. #!/bathroom/1
 	}
 
 	/**
-	 * Push history state
-	 * @param {String} payload The URL to add to the current
-	 * @param {String} title   Optional. The title of the new state
-	 * @param {Object} bundle  Optional. The new state object
+	 * A page state object
+	 * @param {String} state  The state defined by the user
+	 * @param {Number} length The length of the state match compared with current page
+	 */
+	function State(state, length) {
+		this.state = state;
+		this.$$length = length;
+	}
+
+	State.prototype.states = {};
+
+	/**
+	 * Push the new state to the history stack.
+	 * @param {String} payload The URL of the new state
+	 * @param {String} title   Optional. The page title of the new state. Default is the current page title
+	 * @param {Object} bundle  Optional. An object for the new state
 	 */
 	function Push(payload, title, bundle) {
-		var _payload = getBaseURL() + HASH_BANG + payload;
+		payload = getBaseURL() + HASH_BANG + payload;
 		title = title || document.title;
 		bundle = bundle || null;
 
 		if(window.history.pushState) {
-			//console.log(payload, bundle);
-			window.history.pushState(bundle, title, _payload);
-			handleState(getHash(), State.PUSH);
+			window.history.pushState(bundle, title, payload);
+			handleState(getHash());
 		} else {
-			console.error('History API is not supported');
+			return console.error('History API not supported');
 		}
 	}
 
+	/**
+	 * Handle the current page state. Use this when your page is loaded, and specify which states should be handled by which controller. The base state should be empty.
+	 * @param {Object} states An object containing the state and its controller, e.g.
+	 * {
+	 * 	'': baseState,
+	 * 	'person/:id': person
+	 * }
+	 */
 	function HandleStates(states) {
-		//if(!getHash()) return;
-		//console.log(window.location);
+		State.prototype.states = states;
 
-		_states = states;
+		//Handle the current page state
+		handleState(getBestStateMatch(states));
 
-		Object.keys(states).find(state => handleState(state, State.PUSH));
-		window.addEventListener('popstate', function() {
-			//states[state](_split[1], State.POP);
-			handleState(getHash(), State.POP);
+		//Add hash change listener
+		window.addEventListener('hashchange', function() {
+			handleState(getHash());
 		});
 	}
 
-	var State = {
-		PUSH: 'push',
-		POP: 'pop'
-	};
+	/**
+	 * Manage the state by calling the user defined callback when the state is reached
+	 * @param  {Object} state A State object
+	 */
+	function handleState(state) {
+		var states = State.prototype.states;
+		var currentState = getBestStateMatch(states);
+
+		if(!currentState) return;
+
+		//Get variable of current state
+		var stateVar = currentState.state.split(':')[0];
+		stateVar = getHash().split(stateVar)[1];
+
+		//Handle the state by calling the user defined callback
+		states[currentState.state](stateVar || null);
+	}
+
+	/**
+	 * Get the best state match according to current state
+	 * @param  {Object} states The states defined by the user
+	 * @return {State}         Returns the user-defined state that best matches the current page
+	 */
+	function getBestStateMatch(states) {
+		var match = Object.keys(states)
+			.map(state => {
+				if(state === '') return new State(state, 0);
+
+				var match = HASH_BANG + state.split(':')[0];
+				var length = getHash().indexOf(match) === 0 ? match.length - HASH_BANG.length : -1;
+				return new State(state, length);
+			})
+			.reduce((prev, cur) => prev.$$length === -1 ? null : (prev.$$length >= cur.$$length ? prev : cur));
+
+		if(getHash() && match.$$length === 0) {
+			console.warn('Current state is unhandled');
+			return null;
+		}
+		return match;
+	}
 
 	return {
 		Push: Push,
-		HandleStates: HandleStates,
-		State: State
+		HandleStates: HandleStates
 	};
 })();
