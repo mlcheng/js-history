@@ -17,20 +17,6 @@ iqwerty.history = (function() {
 
 	var HASH_BANG = '#!/';
 
-	function getBaseURL() {
-		return window.location.pathname; //e.g. /history/index.html
-	}
-
-	function getHash() {
-		var hash = window.location.hash;
-
-		//Remove the trailing slash if it's there
-		if(hash.substr(-1) === '/') {
-			hash = hash.substring(0, hash.length - 1);
-		}
-		return hash; //e.g. #!/bathroom/1
-	}
-
 	/**
 	 * A page state object
 	 * @param {String} state  The state defined by the user
@@ -55,6 +41,8 @@ iqwerty.history = (function() {
 		bundle = bundle || null;
 
 		if(window.history.pushState) {
+			if(getCurrentState() === payload) return;
+
 			window.history.pushState(bundle, title, payload);
 			handleState(getHash());
 		} else {
@@ -70,16 +58,15 @@ iqwerty.history = (function() {
 	 * 	'person/:id': person
 	 * }
 	 */
-	function HandleStates(states) {
+	function States(states) {
 		State.prototype.states = states;
 
 		//Handle the current page state
 		handleState(getBestStateMatch(states));
 
-		//Add hash change listener
-		window.addEventListener('hashchange', function() {
+		window.addEventListener('popstate', function() {
 			handleState(getHash());
-		});
+		})
 	}
 
 	/**
@@ -123,8 +110,26 @@ iqwerty.history = (function() {
 		return match;
 	}
 
+	function getBaseURL() {
+		return window.location.pathname; //e.g. /history/index.html
+	}
+
+	function getHash() {
+		var hash = window.location.hash;
+
+		//Remove the trailing slash if it's there
+		if(hash.substr(-1) === '/') {
+			hash = hash.substring(0, hash.length - 1);
+		}
+		return hash; //e.g. #!/bathroom/1
+	}
+
+	function getCurrentState() {
+		return getBaseURL() + getHash();
+	}
+
 	return {
 		Push: Push,
-		HandleStates: HandleStates
+		States: States
 	};
 })();
