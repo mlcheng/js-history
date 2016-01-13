@@ -66,7 +66,7 @@ iqwerty.history = (function() {
 
 		window.addEventListener('popstate', function() {
 			handleState(getHash());
-		})
+		});
 	}
 
 	/**
