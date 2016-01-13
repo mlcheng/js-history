@@ -16,6 +16,8 @@ var iqwerty = iqwerty || {};
 iqwerty.history = (function() {
 
 	var HASH_BANG = '#!/';
+	var _stateMode = HASH_BANG;
+	var _baseURL;
 
 	/**
 	 * A page state object
@@ -36,7 +38,8 @@ iqwerty.history = (function() {
 	 * @param {Object} bundle  Optional. An object for the new state
 	 */
 	function Push(payload, title, bundle) {
-		payload = getBaseURL() + HASH_BANG + payload;
+		payload = _stateMode + payload;
+		if(_stateMode === HASH_BANG) payload = getBaseURL() + payload;
 		title = title || document.title;
 		bundle = bundle || null;
 
@@ -58,7 +61,11 @@ iqwerty.history = (function() {
 	 * 	'person/:id': person
 	 * }
 	 */
-	function States(states) {
+	function States(states, options) {
+		if(options) {
+			_stateMode = options.base
+		}
+
 		State.prototype.states = states;
 
 		//Handle the current page state
@@ -74,6 +81,7 @@ iqwerty.history = (function() {
 	 * @param  {Object} state A State object
 	 */
 	function handleState(state) {
+		console.log('handling state');
 		var states = State.prototype.states;
 		var currentState = getBestStateMatch(states);
 
@@ -97,25 +105,40 @@ iqwerty.history = (function() {
 			.map(state => {
 				if(state === '') return new State(state, 0);
 
-				var match = HASH_BANG + state.split(':')[0];
-				var length = getHash().indexOf(match) === 0 ? match.length - HASH_BANG.length : -1;
+				var match = _stateMode + state.split(':')[0];
+				var length = getHash().indexOf(match) === 0 ? match.length - _stateMode.length : -1;
 				return new State(state, length);
 			})
 			.reduce((prev, cur) => prev.$$length === -1 ? null : (prev.$$length >= cur.$$length ? prev : cur));
 
-		if(getHash() && match.$$length === 0) {
+		if(getHash() && match.$$length === -1) {
 			console.warn('Current state is unhandled');
 			return null;
 		}
 		return match;
 	}
 
-	function getBaseURL() {
+	function getPath() {
 		return window.location.pathname; //e.g. /history/index.html
 	}
 
+	function getBaseURL() {
+		if(!_baseURL) {
+			_baseURL = getPath(); //e.g. /history/index.html
+			if(_stateMode !== HASH_BANG) {
+				_baseURL = _stateMode;
+			}
+		}
+		return _baseURL;
+	}
+
 	function getHash() {
-		var hash = window.location.hash;
+		var hash = _stateMode === HASH_BANG ? window.location.hash : getPath();
+
+		if(!hash) {
+			return '';
+		}
+
 
 		//Remove the trailing slash if it's there
 		if(hash.substr(-1) === '/') {
@@ -125,7 +148,11 @@ iqwerty.history = (function() {
 	}
 
 	function getCurrentState() {
-		return getBaseURL() + getHash();
+		if(_stateMode === HASH_BANG) {
+			return getBaseURL() + getHash();
+		} else {
+			return getHash();
+		}
 	}
 
 	return {
