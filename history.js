@@ -17,7 +17,6 @@ iqwerty.history = (function() {
 
 	var HASH_BANG = '#!/';
 	var _stateMode = HASH_BANG;
-	var _baseURL;
 
 	/**
 	 * A page state object
@@ -38,8 +37,8 @@ iqwerty.history = (function() {
 	 * @param {Object} bundle  Optional. An object for the new state
 	 */
 	function Push(payload, title, bundle) {
-		payload = _stateMode + payload;
-		if(_stateMode === HASH_BANG) payload = getBaseURL() + payload;
+		//Payload is the user-specified new state, e.g. bathroom/1
+		payload = getBaseURL() + (_stateMode === HASH_BANG ? HASH_BANG : '') + payload;
 		title = title || document.title;
 		bundle = bundle || null;
 
@@ -81,7 +80,6 @@ iqwerty.history = (function() {
 	 * @param  {Object} state A State object
 	 */
 	function handleState(state) {
-		console.log('handling state');
 		var states = State.prototype.states;
 		var currentState = getBestStateMatch(states);
 
@@ -105,8 +103,8 @@ iqwerty.history = (function() {
 			.map(state => {
 				if(state === '') return new State(state, 0);
 
-				var match = _stateMode + state.split(':')[0];
-				var length = getHash().indexOf(match) === 0 ? match.length - _stateMode.length : -1;
+				var match = state.split(':')[0]; //e.g. bathroom/
+				var length = getHash().indexOf(match) === 0 ? match.length : -1;
 				return new State(state, length);
 			})
 			.reduce((prev, cur) => prev.$$length === -1 ? null : (prev.$$length >= cur.$$length ? prev : cur));
@@ -118,41 +116,55 @@ iqwerty.history = (function() {
 		return match;
 	}
 
+	/**
+	 * Gets the pathname as specified by the window object, e.g. /history/index.html
+	 * @return {String} Returns the pathname
+	 */
 	function getPath() {
-		return window.location.pathname; //e.g. /history/index.html
+		return window.location.pathname;
 	}
 
+	/**
+	 * Gets the base URL of the page. When not using hashbang, the base URL
+	 * is the base URL specified in the options
+	 * @return {String} The base URL of the page
+	 */
 	function getBaseURL() {
-		if(!_baseURL) {
-			_baseURL = getPath(); //e.g. /history/index.html
-			if(_stateMode !== HASH_BANG) {
-				_baseURL = _stateMode;
-			}
-		}
-		return _baseURL;
+		if(_stateMode === HASH_BANG) return getPath();
+		return _stateMode;
 	}
 
+	/**
+	 * Returns the application state. This is the state after the base URL, e.g. bathroom/1
+	 * @return {String} The application state
+	 */
 	function getHash() {
-		var hash = _stateMode === HASH_BANG ? window.location.hash : getPath();
+		var hash;
+		if(_stateMode === HASH_BANG) {
+			hash = window.location.hash;
+			//Remove the hashbang from the hash
+			hash = hash.split(HASH_BANG)[1];
+		} else {
+			hash = getPath().split(getBaseURL())[1];
+		}
 
 		if(!hash) {
 			return '';
 		}
-
-
 		//Remove the trailing slash if it's there
 		if(hash.substr(-1) === '/') {
 			hash = hash.substring(0, hash.length - 1);
 		}
-		return hash; //e.g. #!/bathroom/1
+
+		return hash;
 	}
 
+	/**
+	 * Get the current application state, e.g. /freepee2/m/bathroom/1
+	 * @return {String} Returns the current application state
+	 */
 	function getCurrentState() {
-		if(_stateMode === HASH_BANG) {
-			return getBaseURL() + getHash();
-		} else {
-			return getHash();
-		}
+		return getBaseURL() + getHash();
 	}
 
 	return {
