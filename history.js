@@ -56,6 +56,10 @@ iqwerty.history = (function() {
 		}
 	}
 
+	function Pop() {
+		window.history.back();
+	}
+
 	/**
 	 * Handle the current page state. Use this when your page is loaded, and specify which states should be handled by which controller. The base state should be empty.
 	 * @param {Object} states An object containing the state and its controller, e.g.
@@ -173,6 +177,7 @@ iqwerty.history = (function() {
 
 	return {
 		Push: Push,
+		Pop: Pop,
 		States: States
 	};
 })();
