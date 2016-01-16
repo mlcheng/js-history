@@ -35,4 +35,14 @@ If you need to add a state programmatically, you can use the `Push()` function
 iqwerty.history.Push('read/13432');
 ```
 
-Note that the hash bang (#!) is used by default and cannot be changed. **Do not use this library if you are unsure of using the hashbang forever.**
+## Additional notes
+You can choose not to use the hashbang style (#!) URLs, but this **will require that you do some server config** (e.g. in the `.htaccess` file). In choosing so, you will get URLs that are much more stable, such as `/email/read/13432`. To do so, simply state your base URL when defining your application state
+
+```javascript
+iqwerty.history.States({
+	'': BaseStateController,
+	'read/:id': EmailStateController
+}, {
+	'base': '/email/'
+});
+```
