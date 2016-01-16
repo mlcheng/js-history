@@ -46,7 +46,11 @@ iqwerty.history = (function() {
 			if(getCurrentState() === payload) return;
 
 			window.history.pushState(bundle, title, payload);
-			handleState(getHash());
+
+			//The state needs to be handled in hashbang mode
+			if(_stateMode === HASH_BANG) {
+				handleState(getHash());
+			}
 		} else {
 			return console.error('History API not supported');
 		}
