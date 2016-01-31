@@ -47,7 +47,7 @@ iqwerty.history = (function() {
 
 			window.history.pushState(bundle, title, payload);
 
-			handleState(getHash());
+			handleState();
 		} else {
 			return console.error('History API not supported');
 		}
@@ -67,24 +67,23 @@ iqwerty.history = (function() {
 	 */
 	function States(states, options) {
 		if(options) {
-			_stateMode = options.base
+			_stateMode = options.base;
 		}
 
 		State.prototype.states = states;
 
 		//Handle the current page state
-		handleState(getBestStateMatch(states));
+		handleState();
 
 		window.addEventListener('popstate', function() {
-			handleState(getHash());
+			handleState();
 		});
 	}
 
 	/**
 	 * Manage the state by calling the user defined callback when the state is reached
-	 * @param  {Object} state A State object
 	 */
-	function handleState(state) {
+	function handleState() {
 		var states = State.prototype.states;
 		var currentState = getBestStateMatch(states);
 
