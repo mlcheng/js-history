@@ -94,7 +94,12 @@ iqwerty.history = (function() {
 		stateVar = getHash().split(stateVar)[1];
 
 		//Handle the state by calling the user defined callback
-		states[currentState.state](stateVar || null);
+		states[currentState.state](stateVar || undefined);
+
+
+		states = null;
+		currentState = null;
+		stateVar = null;
 	}
 
 	/**
