@@ -28,7 +28,7 @@ iqwerty.history = (function() {
 		this.$$length = length;
 	}
 
-	State.prototype.states = {};
+	State.prototype.States = {};
 
 	/**
 	 * Push the new state to the history stack.
@@ -70,7 +70,7 @@ iqwerty.history = (function() {
 			_stateMode = options.base;
 		}
 
-		State.prototype.states = states;
+		State.prototype.States = states;
 
 		//Handle the current page state
 		handleState();
@@ -84,7 +84,7 @@ iqwerty.history = (function() {
 	 * Manage the state by calling the user defined callback when the state is reached
 	 */
 	function handleState() {
-		var states = State.prototype.states;
+		var states = State.prototype.States;
 		var currentState = getBestStateMatch(states);
 
 		if(!currentState) return;
