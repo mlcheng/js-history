@@ -15,7 +15,7 @@ var iqwerty = iqwerty || {};
 
 iqwerty.history = (function() {
 
-	var HASH_BANG = '#!/';
+	const HASH_BANG = '#!/';
 	var _stateMode = HASH_BANG;
 
 	/**
@@ -49,7 +49,7 @@ iqwerty.history = (function() {
 
 			handleState();
 		} else {
-			return console.error('History API not supported');
+			throw 'History API not supported';
 		}
 	}
 
@@ -95,11 +95,6 @@ iqwerty.history = (function() {
 
 		//Handle the state by calling the user defined callback
 		states[currentState.state](stateVar || undefined);
-
-
-		states = null;
-		currentState = null;
-		stateVar = null;
 	}
 
 	/**
@@ -116,7 +111,10 @@ iqwerty.history = (function() {
 				var length = getHash().indexOf(match) === 0 ? match.length : -1;
 				return new State(state, length);
 			})
-			.reduce((prev, cur) => prev.$$length === -1 ? null : (prev.$$length >= cur.$$length ? prev : cur));
+			.reduce((prev, cur) =>
+				prev.$$length === -1 ? null :
+				(prev.$$length >= cur.$$length ? prev : cur)
+			);
 
 		if(getHash() && match.$$length === -1) {
 			console.warn('Current state is unhandled');
