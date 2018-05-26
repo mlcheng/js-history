@@ -16,43 +16,59 @@ var iqwerty = iqwerty || {};
 iqwerty.history = (function() {
 
 	const HASH_BANG = '#!/';
+
+	/**
+	 * A map of states and their controllers supported by the caller.
+	 * @type {Object}
+	 */
+	const STATES = {};
+
+	/**
+	 * Either HASH_BANG or the base URL.
+	 * @type {String}
+	 */
 	var _stateMode = HASH_BANG;
 
 	/**
-	 * A page state object
-	 * @param {String} state  The state defined by the user
-	 * @param {Number} length The length of the state match compared with current page
+	 * A page state object.
+	 * @param {String} state The state defined by the user.
+	 * @param {Number} length The length of the state match compared with current page.
 	 */
 	function State(state, length) {
 		this.state = state;
 		this.$$length = length;
 	}
 
-	State.prototype.States = {};
-
 	/**
 	 * Push the new state to the history stack.
 	 * @param {String} payload The URL of the new state
-	 * @param {String} title   Optional. The page title of the new state. Default is the current page title
-	 * @param {Object} bundle  Optional. An object for the new state
+	 * @param {String} title Optional. The page title of the new state. Default is the current page title
+	 * @param {Object} bundle Optional. An object for the new state
 	 */
 	function Push(payload, title, bundle) {
-		//Payload is the user-specified new state, e.g. bathroom/1
-		payload = getBaseURL() + (_stateMode === HASH_BANG ? HASH_BANG : '') + payload;
+		// New URL is the user-specified new state, e.g. bathroom/1
+		const url = getBaseURL() + (_stateMode === HASH_BANG ? HASH_BANG : '') + payload;
+
 		title = title || document.title;
 		bundle = bundle || null;
 
 		if(window.history.pushState) {
-			if(getCurrentState() === payload) return;
+			// Don't navigate if not needed.
+			if(getHash() === payload) {
+				return;
+			}
 
-			window.history.pushState(bundle, title, payload);
+			window.history.pushState(bundle, title, url);
 
 			handleState();
 		} else {
-			throw 'History API not supported';
+			throw new Error('History API not supported');
 		}
 	}
 
+	/**
+	 * Navigate back in the history stack.
+	 */
 	function Pop() {
 		window.history.back();
 	}
@@ -70,9 +86,11 @@ iqwerty.history = (function() {
 			_stateMode = options.base;
 		}
 
-		State.prototype.States = states;
+		Object.keys(states).forEach(state => {
+			STATES[state] = states[state];
+		});
 
-		//Handle the current page state
+		// Handle the current page state
 		handleState();
 
 		window.addEventListener('popstate', function() {
@@ -81,34 +99,38 @@ iqwerty.history = (function() {
 	}
 
 	/**
-	 * Manage the state by calling the user defined callback when the state is reached
+	 * Manage the state by calling the user defined callback when the state is reached.
 	 */
 	function handleState() {
-		var states = State.prototype.States;
-		var currentState = getBestStateMatch(states);
+		const currentState = getBestStateMatch(STATES);
 
-		if(!currentState) return;
+		// Current state is not handled. This is not necessarily an error.
+		if(!currentState) {
+			return;
+		}
 
-		//Get variable of current state
+		// Get variable of current state.
 		var stateVar = currentState.state.split(':')[0];
 		stateVar = getHash().split(stateVar)[1];
 
-		//Handle the state by calling the user defined callback
-		states[currentState.state](stateVar || undefined);
+		// Handle the state by calling the user defined callback.
+		STATES[currentState.state](stateVar || undefined);
 	}
 
 	/**
-	 * Get the best state match according to current state
-	 * @param  {Object} states The states defined by the user
-	 * @return {State}         Returns the user-defined state that best matches the current page
+	 * Get the best state match according to current state.
+	 * @param  {Object} states The states defined by the user.
+	 * @return {State} Returns the user-defined state that best matches the current page.
 	 */
 	function getBestStateMatch(states) {
-		var match = Object.keys(states)
+		const match = Object.keys(states)
 			.map(state => {
-				if(state === '') return new State(state, 0);
+				if(state === '') {
+					return new State(state, 0);
+				}
 
-				var match = state.split(':')[0]; //e.g. bathroom/
-				var length = getHash().indexOf(match) === 0 ? match.length : -1;
+				const match = state.split(':')[0]; // e.g. bathroom/
+				const length = getHash().indexOf(match) === 0 ? match.length : -1;
 				return new State(state, length);
 			})
 			.reduce((prev, cur) =>
@@ -120,12 +142,13 @@ iqwerty.history = (function() {
 			console.warn('Current state is unhandled');
 			return null;
 		}
+
 		return match;
 	}
 
 	/**
 	 * Gets the pathname as specified by the window object, e.g. /history/index.html
-	 * @return {String} Returns the pathname
+	 * @return {String} Returns the pathname.
 	 */
 	function getPath() {
 		return window.location.pathname;
@@ -133,23 +156,26 @@ iqwerty.history = (function() {
 
 	/**
 	 * Gets the base URL of the page. When not using hashbang, the base URL
-	 * is the base URL specified in the options
-	 * @return {String} The base URL of the page
+	 * is the base URL specified in the options.
+	 * @return {String} The base URL of the page.
 	 */
 	function getBaseURL() {
-		if(_stateMode === HASH_BANG) return getPath();
+		if(_stateMode === HASH_BANG) {
+			return getPath();
+		}
+
 		return _stateMode;
 	}
 
 	/**
 	 * Returns the application state. This is the state after the base URL, e.g. bathroom/1
-	 * @return {String} The application state
+	 * @return {String} The application state.
 	 */
 	function getHash() {
 		var hash;
 		if(_stateMode === HASH_BANG) {
 			hash = window.location.hash;
-			//Remove the hashbang from the hash
+			// Remove the hashbang from the hash.
 			hash = hash.split(HASH_BANG)[1];
 		} else {
 			hash = getPath().split(getBaseURL())[1];
@@ -158,7 +184,8 @@ iqwerty.history = (function() {
 		if(!hash) {
 			return '';
 		}
-		//Remove the trailing slash if it's there
+
+		// Remove the trailing slash if it's there.
 		if(hash.substr(-1) === '/') {
 			hash = hash.substring(0, hash.length - 1);
 		}
@@ -166,17 +193,9 @@ iqwerty.history = (function() {
 		return hash;
 	}
 
-	/**
-	 * Get the current application state, e.g. /freepee2/m/bathroom/1
-	 * @return {String} Returns the current application state
-	 */
-	function getCurrentState() {
-		return getBaseURL() + getHash();
-	}
-
 	return {
-		Push: Push,
-		Pop: Pop,
-		States: States
+		Push,
+		Pop,
+		States,
 	};
 })();
