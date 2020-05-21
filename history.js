@@ -11,9 +11,9 @@
 
 'use strict';
 
-var iqwerty = iqwerty || {};
-
-iqwerty.history = (function() {
+/* jshint -W079 */
+export const history = (() => {
+	/* jshint +W079 */
 
 	const HASH_BANG = '#!/';
 
@@ -25,14 +25,14 @@ iqwerty.history = (function() {
 
 	/**
 	 * Either HASH_BANG or the base URL.
-	 * @type {String}
+	 * @type {string}
 	 */
-	var _stateMode = HASH_BANG;
+	let _stateMode = HASH_BANG;
 
 	/**
 	 * A page state object.
-	 * @param {String} state The state defined by the user.
-	 * @param {Number} length The length of the state match compared with current page.
+	 * @param {string} state The state defined by the user.
+	 * @param {number} length The length of the state match compared with current page.
 	 */
 	function State(state, length) {
 		this.state = state;
@@ -41,11 +41,11 @@ iqwerty.history = (function() {
 
 	/**
 	 * Push the new state to the history stack.
-	 * @param {String} payload The URL of the new state
-	 * @param {String} title Optional. The page title of the new state. Default is the current page title
+	 * @param {string} payload The URL of the new state
+	 * @param {string} title Optional. The page title of the new state. Default is the current page title
 	 * @param {Object} bundle Optional. An object for the new state
 	 */
-	function Push(payload, title, bundle) {
+	function pushState(payload, title, bundle) {
 		// New URL is the user-specified new state, e.g. bathroom/1
 		const url = getBaseURL() + (_stateMode === HASH_BANG ? HASH_BANG : '') + payload;
 
@@ -69,7 +69,7 @@ iqwerty.history = (function() {
 	/**
 	 * Navigate back in the history stack.
 	 */
-	function Pop() {
+	function popState() {
 		window.history.back();
 	}
 
@@ -81,7 +81,7 @@ iqwerty.history = (function() {
 	 * 	'person/:id': person
 	 * }
 	 */
-	function States(states, options) {
+	function setStates(states, options) {
 		if(options) {
 			_stateMode = options.base;
 		}
@@ -110,7 +110,7 @@ iqwerty.history = (function() {
 		}
 
 		// Get variable of current state.
-		var stateVar = currentState.state.split(':')[0];
+		let stateVar = currentState.state.split(':')[0];
 		stateVar = getHash().split(stateVar)[1];
 
 		// Handle the state by calling the user defined callback.
@@ -135,8 +135,7 @@ iqwerty.history = (function() {
 			})
 			.reduce((prev, cur) =>
 				prev.$$length === -1 ? null :
-				(prev.$$length >= cur.$$length ? prev : cur)
-			);
+				(prev.$$length >= cur.$$length ? prev : cur), {});
 
 		if(getHash() && match.$$length === -1) {
 			console.warn('Current state is unhandled');
@@ -148,7 +147,7 @@ iqwerty.history = (function() {
 
 	/**
 	 * Gets the pathname as specified by the window object, e.g. /history/index.html
-	 * @return {String} Returns the pathname.
+	 * @return {string} Returns the pathname.
 	 */
 	function getPath() {
 		return window.location.pathname;
@@ -157,7 +156,7 @@ iqwerty.history = (function() {
 	/**
 	 * Gets the base URL of the page. When not using hashbang, the base URL
 	 * is the base URL specified in the options.
-	 * @return {String} The base URL of the page.
+	 * @return {string} The base URL of the page.
 	 */
 	function getBaseURL() {
 		if(_stateMode === HASH_BANG) {
@@ -169,10 +168,10 @@ iqwerty.history = (function() {
 
 	/**
 	 * Returns the application state. This is the state after the base URL, e.g. bathroom/1
-	 * @return {String} The application state.
+	 * @return {string} The application state.
 	 */
 	function getHash() {
-		var hash;
+		let hash;
 		if(_stateMode === HASH_BANG) {
 			hash = window.location.hash;
 			// Remove the hashbang from the hash.
@@ -193,9 +192,5 @@ iqwerty.history = (function() {
 		return hash;
 	}
 
-	return {
-		Push,
-		Pop,
-		States,
-	};
+	return { pushState, popState, setStates };
 })();

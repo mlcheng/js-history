@@ -1,0 +1,10 @@
+{
+	"js": {
+		"bundle": [
+			{
+				"entry": "history.js",
+				"export": "iqwerty"
+			}
+		]
+	}
+}
